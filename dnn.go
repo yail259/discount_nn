@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"slices"
 )
 
@@ -62,12 +63,12 @@ func Add(a *Value, b *Value) Value {
 	return nv
 }
 
-func findChildren(node *Value, topo *[]*Value, visited *map[*Value]bool) {
+func FindChildren(node *Value, topo *[]*Value, visited *map[*Value]bool) {
 	if node != nil && !(*visited)[node] {
 		(*visited)[node] = true
 
-		findChildren(node.child1, topo, visited)
-		findChildren(node.child2, topo, visited)
+		FindChildren(node.child1, topo, visited)
+		FindChildren(node.child2, topo, visited)
 
 		*topo = append(*topo, node)
 	}
@@ -79,7 +80,7 @@ func Backward(root *Value) {
 	topo := make([]*Value, 0)
 	visited := make(map[*Value]bool)
 
-	findChildren(root, &topo, &visited)
+	FindChildren(root, &topo, &visited)
 	slices.Reverse(topo)
 
 	fmt.Println(topo)
@@ -106,6 +107,21 @@ func ZeroGrad(root *Value) {
 	ZeroGrad(root.child2)
 }
 
+func NewNeuron(nin int) Neuron {
+	w := make([]Value, nin)
+
+	for i := 0; i < len(w); i++ {
+		w[i] = NewValue(rand.NormFloat64())
+	}
+
+	neuron := Neuron{
+		weight: w,
+		bias:   NewValue(rand.NormFloat64()),
+	}
+
+	return neuron
+}
+
 func main() {
 	a := NewValue(12.4)
 
@@ -119,4 +135,6 @@ func main() {
 	fmt.Println(a)
 	fmt.Println(x)
 	fmt.Println(y)
+
+	fmt.Println(NewNeuron(10))
 }

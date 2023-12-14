@@ -13,6 +13,7 @@ type Value struct {
 	op     string
 	child1 *Value
 	child2 *Value
+	isGrad bool
 }
 
 type Neuron struct {
@@ -29,13 +30,14 @@ type MLP struct {
 	layers []Layer
 }
 
-func NewValue(data float64) Value {
+func NewValue(data float64, isGrad bool) Value {
 	nv := Value{
 		data:   data,
 		grad:   0,
 		op:     "",
 		child1: nil,
 		child2: nil,
+		isGrad: isGrad,
 	}
 
 	return nv
@@ -48,6 +50,7 @@ func Mult(a *Value, b *Value) Value {
 		op:     "mult",
 		child1: a,
 		child2: b,
+		isGrad: true,
 	}
 
 	return nv
@@ -60,6 +63,7 @@ func Add(a *Value, b *Value) Value {
 		op:     "add",
 		child1: a,
 		child2: b,
+		isGrad: true,
 	}
 
 	return nv
@@ -72,6 +76,7 @@ func Pow(a *Value, b *Value) Value {
 		op:     "pow",
 		child1: a,
 		child2: b,
+		isGrad: true,
 	}
 
 	return nv
@@ -84,7 +89,9 @@ func FindChildren(node *Value, topo *[]*Value, visited *map[*Value]bool) {
 		FindChildren(node.child1, topo, visited)
 		FindChildren(node.child2, topo, visited)
 
-		*topo = append(*topo, node)
+		if node.isGrad {
+			*topo = append(*topo, node)
+		}
 	}
 }
 
@@ -109,10 +116,10 @@ func Backward(root *Value) []*Value {
 		}
 	}
 
-	fmt.Println("TOPO:")
-	for _, v := range topo {
-		fmt.Printf("%+v\n", v)
-	}
+	// fmt.Println("TOPO:")
+	// for _, v := range topo {
+	// 	fmt.Printf("%+v\n", v)
+	// }
 
 	return topo
 }
@@ -131,12 +138,12 @@ func NewNeuron(nin int) Neuron {
 	w := make([]Value, nin)
 
 	for i := 0; i < len(w); i++ {
-		w[i] = NewValue(rand.NormFloat64() * 0.1)
+		w[i] = NewValue(rand.NormFloat64()*0.1, true)
 	}
 
 	neuron := Neuron{
 		weight: w,
-		bias:   NewValue(rand.NormFloat64() * 0.1),
+		bias:   NewValue(rand.NormFloat64()*0.1, true),
 		nonlin: true,
 	}
 
@@ -215,11 +222,11 @@ func (mlp *MLP) forward(x []Value) []Value {
 }
 
 func Loss(actual []Value, target []Value) Value {
-	loss := NewValue(0)
+	loss := NewValue(0, false)
 	lossp := &loss
 
-	neg1 := NewValue(-1)
-	pos2 := NewValue(2)
+	neg1 := NewValue(-1, false)
+	pos2 := NewValue(2, false)
 
 	for i := 0; i < len(actual); i++ {
 		negTarget := Mult(&neg1, &target[i])
@@ -268,23 +275,25 @@ func main() {
 	mlp := NewMLP(2, []int{1})
 	PrintMLP(mlp)
 
-	x := []Value{NewValue(3), NewValue(4)}
-	y := []Value{NewValue(2)}
+	x := []Value{NewValue(3, false), NewValue(4, false)}
+	y := []Value{NewValue(2, false)}
 
 	out := mlp.forward(x)
 	loss := Loss(out, y)
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 20; i++ {
 		ZeroGrad(&loss)
 		out := mlp.forward(x)
 		loss := Loss(out, y)
 
-		fmt.Println(out, loss)
 		topo := Backward(&loss)
+		fmt.Println(out, loss)
 
 		for j := 0; j < len(topo); j++ {
-			topo[j].data += 0.1 * topo[j].grad
+			topo[j].data += -0.01 * topo[j].grad
 		}
 	}
+
+	fmt.Println(x)
 
 }

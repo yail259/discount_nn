@@ -88,7 +88,7 @@ func FindChildren(node *Value, topo *[]*Value, visited *map[*Value]bool) {
 	}
 }
 
-func Backward(root *Value) {
+func Backward(root *Value) []*Value {
 	root.grad = 1
 
 	topo := make([]*Value, 0)
@@ -113,6 +113,8 @@ func Backward(root *Value) {
 	for _, v := range topo {
 		fmt.Printf("%+v\n", v)
 	}
+
+	return topo
 }
 
 func ZeroGrad(root *Value) {
@@ -270,23 +272,19 @@ func main() {
 	y := []Value{NewValue(2)}
 
 	out := mlp.forward(x)
-
 	loss := Loss(out, y)
-	Backward(&loss)
 
-	// fmt.Println(out)
+	for i := 0; i < 100; i++ {
+		ZeroGrad(&loss)
+		out := mlp.forward(x)
+		loss := Loss(out, y)
 
-	// topo := make([]*Value, 0)
-	// visited := make(map[*Value]bool)
+		fmt.Println(out, loss)
+		topo := Backward(&loss)
 
-	// FindChildren(&out[0], &topo, &visited)
-	// slices.Reverse(topo)
+		for j := 0; j < len(topo); j++ {
+			topo[j].data += 0.1 * topo[j].grad
+		}
+	}
 
-	// fmt.Println(topo)
-
-	// tree.Print(&out[0])
-
-	// PrintMLP(mlp)
-
-	// fmt.Println(out, y)
 }
